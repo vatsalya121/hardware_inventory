@@ -1,7 +1,11 @@
+import 'dart:typed_data';
 import '../models/item.dart';
+import 'package:pdf/pdf.dart';
 import 'package:flutter/material.dart';
 import '../widgets/logout_button.dart';
 import 'package:provider/provider.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../providers/cart_provider.dart';
 
 class CartScreen extends StatelessWidget {
@@ -73,8 +77,9 @@ class CartScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: () {
-                  // Logic for printing invoice
+                onPressed: () async {
+                  final pdfData = await _generateInvoicePDF(context);
+                  await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdfData);
                 },
                 child: Text("Print Invoice"),
                 style: ElevatedButton.styleFrom(
@@ -88,5 +93,50 @@ class CartScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<Uint8List> _generateInvoicePDF(BuildContext context) async {
+    final pdf = pw.Document();
+
+    // Get cart items
+    final cartItems = context.read<CartProvider>().cartItems;
+
+    // Add a page with customer info and cart items
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            children: [
+              pw.Text('Invoice', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              pw.Text('Customer Info', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              // Add customer details here if needed
+              pw.SizedBox(height: 20),
+              pw.Text('Items:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.ListView.builder(
+                itemCount: cartItems.length,
+                itemBuilder: (context, index) {
+                  final item = cartItems.keys.elementAt(index);
+                  final quantity = cartItems[item] ?? 0;
+                  return pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('${item.name} (${item.unit})'),
+                      pw.Text('Qty: $quantity'),
+                      pw.Text('\$${((item.price ?? 0) * quantity).toStringAsFixed(2)}'),
+                    ],
+                  );
+                },
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text('Total: \$${cartItems.entries.map((e) => e.key.price * e.value).reduce((a, b) => a + b).toStringAsFixed(2)}'),
+            ],
+          );
+        },
+      ),
+    );
+
+    return await pdf.save();
   }
 }

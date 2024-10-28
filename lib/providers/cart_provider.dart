@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hardapp/models/item.dart';
+import 'package:hardapp/models/customer.dart';
 
 class CartProvider with ChangeNotifier {
   // Using a Map to store items and their quantities
   Map<Item, int> _cartItems = {};
+  Customer? _customer; // Store customer information
+  bool _rememberMe = false; // Flag for "Remember Me"
 
   // Exposing the cart items
   Map<Item, int> get cartItems => _cartItems;
+
+  // Get customer info
+  Customer? get customer => _customer;
+
+  // Get remember me status
+  bool get rememberMe => _rememberMe;
 
   // Method to check if an item is already in the cart
   bool isInCart(Item item) {
@@ -38,4 +47,20 @@ class CartProvider with ChangeNotifier {
 
   // Get the quantity of a specific item
   int getQuantity(Item item) => _cartItems[item] ?? 0;
+
+  // Set customer data and remember status
+  void setCustomer(Customer customer, bool remember) {
+    _customer = customer;
+    _rememberMe = remember;
+    notifyListeners();
+  }
+
+  // Clear cart and customer data on logout
+  void logout() {
+    _cartItems.clear();
+    if (!_rememberMe) {
+      _customer = null; // Clear customer data if not remembered
+    }
+    notifyListeners();
+  }
 }

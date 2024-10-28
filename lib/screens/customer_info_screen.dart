@@ -1,92 +1,88 @@
 import 'package:flutter/material.dart';
-import '../widgets/logout_button.dart';
-import 'package:hardapp/screens/cart_screen.dart';
-import 'package:hardapp/screens/add_items_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:hardapp/models/customer.dart';
+import 'package:hardapp/helpers/database_helper.dart';
+import 'package:hardapp/providers/cart_provider.dart';
 
-class CustomerInfoScreen extends StatelessWidget {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+class CustomerInfoScreen extends StatefulWidget {
+  @override
+  _CustomerInfoScreenState createState() => _CustomerInfoScreenState();
+}
+
+class _CustomerInfoScreenState extends State<CustomerInfoScreen> {
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  bool _rememberMe = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _saveCustomer() async {
+    final name = _nameController.text;
+    final phone = _phoneController.text;
+
+    if (name.isNotEmpty && phone.isNotEmpty) {
+      final customer = Customer(name: name, phoneNumber: phone);
+      await DatabaseHelper().insertCustomer(customer);
+      Provider.of<CartProvider>(context, listen: false)
+          .setCustomer(customer, _rememberMe);
+      // Navigate to next screen or perform actions after saving
+    }
+  }
+
+  void _logout() {
+    Provider.of<CartProvider>(context, listen: false).logout();
+    Navigator.pop(context); // Go back to the previous screen
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Customer Information"),
-        backgroundColor: Colors.blueGrey, // Change if needed
+        title: Text('Customer Info'),
         actions: [
-          LogoutButton(), // Use a more styled LogoutButton (explained below)
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white], // Gradient background
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // Center the content vertically
-              crossAxisAlignment: CrossAxisAlignment.center, // Center the text fields
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: _phoneController,
+              decoration: InputDecoration(labelText: 'Phone Number'),
+              keyboardType: TextInputType.phone,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Text(
-                  "Enter Customer Details",
-                  style: Theme.of(context).textTheme.displayLarge,
-                ),
-                SizedBox(height: 16),
-                // Customer Name TextField
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Customer Name',
-                    labelStyle: TextStyle(color: Colors.blueGrey), // Change label color
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.8), // Input field background
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none, // Remove border
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                // Phone Number TextField
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number',
-                    labelStyle: TextStyle(color: Colors.blueGrey), // Change label color
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.8), // Input field background
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none, // Remove border
-                    ),
-                  ),
-                ),
-                SizedBox(height: 32),
-                // Continue Button
-                ElevatedButton(
-                  onPressed: () {
-                    // Navigate to the Cart Screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AddItemsScreen()),
-                    );
+                Checkbox(
+                  value: _rememberMe,
+                  onChanged: (value) {
+                    setState(() {
+                      _rememberMe = value!;
+                    });
                   },
-                  child: Text("Continue"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange, // Button color
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16), // Button padding
-                    textStyle: TextStyle(fontSize: 18), // Button text style
-                  ),
                 ),
+                Text('Remember Me'),
               ],
             ),
-          ),
+            ElevatedButton(
+              onPressed: _saveCustomer,
+              child: Text('Save'),
+            ),
+          ],
         ),
       ),
     );
