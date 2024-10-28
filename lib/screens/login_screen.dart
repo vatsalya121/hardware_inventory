@@ -1,9 +1,60 @@
 import 'package:flutter/material.dart';
+import 'dart:convert'; // For JSON encoding/decoding
 import 'package:hardapp/screens/customer_info_screen.dart';
+import 'package:http/http.dart' as http; // Importing the HTTP package
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Clear the text fields when the screen is opened
+    usernameController.clear();
+    passwordController.clear();
+  }
+
+  Future<void> login(BuildContext context) async {
+    // Define the URL of your PHP script
+    final url = Uri.parse('http://localhost/inventory_app/login.php');
+
+    // Send the POST request
+    final response = await http.post(url, body: {
+      'username': usernameController.text,
+      'password': passwordController.text,
+    });
+
+    // Decode the response
+    final responseData = json.decode(response.body);
+
+    // Check the response
+    if (responseData['success']) {
+      // Navigate to the Customer Info Screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CustomerInfoScreen()),
+      );
+    } else {
+      // Show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(responseData['message'])),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    // Dispose the controllers when the widget is removed from the widget tree
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +111,8 @@ class LoginScreen extends StatelessWidget {
                 // Login Button
                 ElevatedButton(
                   onPressed: () {
-                    // Logic to validate login and navigate to customer info screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => CustomerInfoScreen()),
-                    );
+                    // Call the login function
+                    login(context);
                   },
                   child: Text("Login"),
                   style: ElevatedButton.styleFrom(
